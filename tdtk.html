@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REUNIBOOK - Nền Tảng Sách Sinh Viên UEH</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ueh: {
+                            navy: '#003366',
+                            gold: '#D4AF37',
+                            light: '#F4F7FA',
+                            green: '#2E7D32'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .badge-verified {
+            background: linear-gradient(135deg, #003366, #0055a5);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans flex flex-col min-h-screen">
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="bg-ueh-navy text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <!-- Logo -->
+            <div class="flex items-center space-x-3">
+                <div class="bg-white text-ueh-navy font-bold p-2 rounded-lg text-xl tracking-wider shadow">
+                    REUNI<span class="text-ueh-gold">BOOK</span>
+                </div>
+                <span class="hidden md:inline-block text-xs bg-yellow-500 text-ueh-navy px-2 py-1 rounded font-bold">UEH Exclusive</span>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="hidden md:flex flex-1 max-w-lg mx-6">
+                <div class="relative w-full">
+                    <input type="text" id="searchInput" placeholder="Tìm tên môn (VD: Vi mô), Mã môn (ECO101), hoặc Tên sách..." 
+                           class="w-full pl-10 pr-4 py-2 rounded-full text-gray-800 focus:outline-none focus:ring-2 focus:ring-ueh-gold shadow-inner text-sm">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400"></i>
+                </div>
+            </div>
+
+            <!-- User Auth & Action Buttons -->
+            <div class="flex items-center space-x-3">
+                <button onclick="openModal('postModal')" class="bg-ueh-gold hover:bg-yellow-600 text-ueh-navy font-bold px-4 py-2 rounded-lg text-sm transition flex items-center gap-1 shadow">
+                    <i class="fa-solid fa-plus-circle"></i> <span>Đăng tin bán/cho thuê</span>
+                </button>
+                <div id="userProfile" class="flex items-center gap-2 cursor-pointer bg-blue-900 bg-opacity-50 px-3 py-1.5 rounded-full border border-blue-400">
+                    <i class="fa-solid fa-user-shield text-green-400"></i>
+                    <span class="text-xs font-semibold" id="studentId">NguenVanA@st.ueh.edu.vn</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- BANNER KHUYẾN NGHỊ LMS INTEGRATION -->
+    <section class="bg-gradient-to-r from-blue-900 via-ueh-navy to-indigo-900 text-white py-6 px-4 border-b-4 border-ueh-gold">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+                <span class="bg-green-500 text-xs px-2 py-1 rounded-full font-bold uppercase tracking-wider">Tính năng mới</span>
+                <h1 class="text-xl md:text-2xl font-bold mt-1">Đồng bộ Thời khóa biểu UEH Portal & LMS</h1>
+                <p class="text-sm text-blue-200 mt-1">Tự động đề xuất chính xác giáo trình cần mua theo môn học kỳ này của bạn. Tiết kiệm 50-70% chi phí!</p>
+            </div>
+            <button onclick="syncLMS()" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg text-sm flex items-center gap-2 shadow whitespace-nowrap">
+                <i class="fa-solid fa-rotate"></i> Kết nối UEH Portal
+            </button>
+        </div>
+    </section>
+
+    <!-- MAIN CONTENT -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+
+            <!-- SIDEBAR FILTERS -->
+            <aside class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 space-y-6">
+                <div>
+                    <h3 class="font-bold text-ueh-navy border-b pb-2 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-filter"></i> Bộ lọc nhanh (< 3 phút)
+                    </h3>
+                    
+                    <!-- Ngành học -->
+                    <div class="mb-4">
+                        <label class="text-xs font-semibold text-gray-600 block mb-1">Khoa / Ngành học</label>
+                        <select id="filterDepartment" onchange="filterBooks()" class="w-full border rounded-lg p-2 text-sm focus:ring-ueh-navy focus:border-ueh-navy">
+                            <option value="all">Tất cả các Khoa</option>
+                            <option value="kinhte">Khoa Kinh Tế</option>
+                            <option value="taichinh">Khoa Tài Chính - Ngân Hàng</option>
+                            <option value="quantri">Khoa Quản Trị</option>
+                            <option value="cntt">Khoa CNTT Kinh Tế</option>
+                        </select>
+                    </div>
+
+                    <!-- Loại hình dịch vụ -->
+                    <div class="mb-4">
+                        <label class="text-xs font-semibold text-gray-600 block mb-1">Nhu cầu</label>
+                        <select id="filterType" onchange="filterBooks()" class="w-full border rounded-lg p-2 text-sm focus:ring-ueh-navy focus:border-ueh-navy">
+                            <option value="all">Mua hoặc Mượn/Thê</option>
+                            <option value="buy">Mua sách cũ</option>
+                            <option value="rent">Thuê ngắn hạn (1 - 3 ngày mùa thi)</option>
+                        </select>
+                    </div>
+
+                    <!-- Tình trạng sách -->
+                    <div class="mb-4">
+                        <label class="text-xs font-semibold text-gray-600 block mb-1">Độ mới tối thiểu</label>
+                        <select id="filterCondition" onchange="filterBooks()" class="w-full border rounded-lg p-2 text-sm focus:ring-ueh-navy focus:border-ueh-navy">
+                            <option value="0">Mọi tình trạng</option>
+                            <option value="90">Mới > 90% (Gần như mới)</option>
+                            <option value="70">Mới > 70% (Highlight ít)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- ĐIỂM GỬI/NHẬN KÝ GỬI CAMPUS MAP -->
+                <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <h4 class="font-bold text-xs text-ueh-navy mb-1 flex items-center gap-1">
+                        <i class="fa-solid fa-location-dot text-red-500"></i> Điểm ký gửi Campus UEH
+                    </h4>
+                    <p class="text-xs text-gray-600 mb-2">Gửi & Nhận sách nhanh tại các điểm đối tác:</p>
+                    <ul class="text-xs space-y-1 text-gray-700 font-medium">
+                        <li>📍 Căng tin Cơ sở A (59C Nguyễn Đình Chiểu)</li>
+                        <li>📍 Tiệm In ấn Cơ sở B (279 Nguyễn Tri Phương)</li>
+                        <li>📍 Cafe Sách Cơ sở N (Nhiêu Lộc)</li>
+                    </ul>
+                </div>
+
+                <!-- CHƯƠNG TRÌNH ĐỔI SÁCH LẤY ĐIỂM RÈN LUYỆN -->
+                <div class="bg-green-50 p-3 rounded-lg border border-green-200 text-xs">
+                    <h4 class="font-bold text-green-800 mb-1 flex items-center gap-1">
+                        <i class="fa-solid fa-leaf text-green-600"></i> Chiến dịch "Voucher Xanh"
+                    </h4>
+                    <p class="text-gray-600">Quyên góp giáo trình cũ cho Đoàn - Hội UEH để nhận ngay **20 Điểm Rèn Luyện** hoặc **Voucher UEH Green**.</p>
+                </div>
+            </aside>
+
+            <!-- BOOK LISTINGS SECTION -->
+            <section class="lg:col-span-3 space-y-4">
+                
+                <!-- TOP BAR STATS & NOTICE -->
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs flex justify-between items-center text-amber-800">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-amber-600 text-lg"></i>
+                        <span><strong>Cơ chế Bảo vệ Giữ tiền 24h - 48h:</strong> Giữ lại 50% tiền trong 2 ngày để người mua kiểm tra chất lượng trước khi hoàn tất!</span>
+                    </div>
+                </div>
+
+                <!-- MARKETPLACE GRID -->
+                <div id="booksGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Books dynamically populated via JS -->
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- CHAT & SCHEDULE MODAL -->
+    <div id="chatModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col h-[500px]">
+            <div class="bg-ueh-navy text-white p-3 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-comments"></i>
+                    <div>
+                        <h4 class="font-bold text-sm" id="chatSellerName">Người Bán (Đã xác minh ST.UEH)</h4>
+                        <span class="text-[10px] text-green-300">Uy tín: 🌟 4.9/5 (12 giao dịch thành công)</span>
+                    </div>
+                </div>
+                <button onclick="closeModal('chatModal')" class="text-gray-300 hover:text-white">&times;</button>
+            </div>
+
+            <!-- Chat Messages Area -->
+            <div id="chatMessages" class="flex-1 p-3 overflow-y-auto space-y-2 bg-gray-50 text-xs">
+                <div class="bg-blue-100 text-blue-900 p-2 rounded-lg max-w-[80%]">
+                    Chào bạn! Sách này vẫn còn nhé. Đúng chuẩn mã môn, ít highlight.
+                </div>
+            </div>
+
+            <!-- Schedule Meeting Feature -->
+            <div class="p-2 bg-yellow-50 border-t border-b border-yellow-200 text-xs">
+                <span class="font-bold text-ueh-navy block mb-1">🤝 Công cụ Đặt lịch hẹn gặp tại Campus:</span>
+                <div class="flex gap-2">
+                    <select id="meetLocation" class="border rounded p-1 text-xs w-1/2">
+                        <option>Cơ sở A (Nguyễn Đình Chiểu)</option>
+                        <option>Cơ sở B (Nguyễn Tri Phương)</option>
+                        <option>Cơ sở N (Nhiêu Lộc - Bình Chánh)</option>
+                    </select>
+                    <input type="time" id="meetTime" class="border rounded p-1 text-xs w-1/2">
+                    <button onclick="sendSchedule()" class="bg-ueh-navy text-white px-2 py-1 rounded text-xs font-bold">Hẹn</button>
+                </div>
+            </div>
+
+            <!-- Chat Input -->
+            <div class="p-2 border-t flex gap-2">
+                <input type="text" id="chatInput" placeholder="Nhập tin nhắn..." class="flex-1 border rounded px-2 py-1 text-xs focus:outline-none">
+                <button onclick="sendMessage()" class="bg-ueh-navy text-white px-3 py-1 rounded text-xs"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- POST BOOK MODAL -->
+    <div id="postModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-bold text-lg text-ueh-navy">Đăng Bán / Cho Thuê Giáo Trình</h3>
+                <button onclick="closeModal('postModal')" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+            </div>
+
+            <form id="postForm" onsubmit="handlePostBook(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="font-bold block text-gray-700">Tên Giáo Trình *</label>
+                    <input type="text" id="postTitle" required placeholder="VD: Giáo trình Kinh tế Vi mô" class="w-full border rounded p-2 border-gray-300">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="font-bold block text-gray-700">Mã Môn Học *</label>
+                        <input type="text" id="postCode" required placeholder="VD: ECO101" class="w-full border rounded p-2 border-gray-300">
+                    </div>
+                    <div>
+                        <label class="font-bold block text-gray-700">Thuộc Khoa / Ngành *</label>
+                        <select id="postDept" class="w-full border rounded p-2 border-gray-300">
+                            <option value="kinhte">Khoa Kinh Tế</option>
+                            <option value="taichinh">Khoa Tài Chính - Ngân Hàng</option>
+                            <option value="quantri">Khoa Quản Trị</option>
+                            <option value="cntt">Khoa CNTT Kinh Tế</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="font-bold block text-gray-700">Hình thức *</label>
+                        <select id="postType" class="w-full border rounded p-2 border-gray-300" onchange="toggleRentPrice(this.value)">
+                            <option value="buy">Bán đứt</option>
+                            <option value="rent">Cho thuê theo ngày (1-3 ngày)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="font-bold block text-gray-700">Giá bán / Thuê (VNĐ) *</label>
+                        <input type="number" id="postPrice" required placeholder="50000" class="w-full border rounded p-2 border-gray-300">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="font-bold block text-gray-700">Tình trạng thực tế (Highlight, rách, mới %...) *</label>
+                    <textarea id="postCondition" required rows="2" placeholder="Sách mới 85%, highlight tầm 3 trang chương 2, không rách trang..." class="w-full border rounded p-2 border-gray-300"></textarea>
+                </div>
+
+                <div>
+                    <label class="font-bold block text-gray-700">Đính kèm ảnh thực tế sách *</label>
+                    <input type="file" accept="image/*" class="w-full border rounded p-1 border-gray-300">
+                </div>
+
+                <div class="bg-blue-50 p-2 rounded text-[11px] text-blue-800">
+                    🔒 Tài khoản đăng bài được tự động xác minh dưới dạng <strong>Sinh viên UEH chính chủ</strong>.
+                </div>
+
+                <button type="submit" class="w-full bg-ueh-navy text-white py-2 rounded font-bold hover:bg-blue-900 transition">Đăng Tin Ngay</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-ueh-navy text-white text-xs py-6 mt-10 border-t-2 border-ueh-gold">
+        <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <h4 class="font-bold text-sm text-ueh-gold mb-2">REUNIBOOK - UEH STUDENT PLATFORM</h4>
+                <p class="text-blue-200">Giải pháp toàn diện giúp tiết kiệm 50-70% chi phí giáo trình và thúc đẩy vòng đời tiêu dùng xanh bền vững tại Đại học Kinh tế TP.HCM.</p>
+            </div>
+            <div>
+                <h4 class="font-bold text-sm text-ueh-gold mb-2">Quy Trình An Toàn</h4>
+                <ul class="space-y-1 text-blue-200">
+                    <li>✔️ 100% Đăng nhập bằng Email ST.UEH</li>
+                    <li>✔️ Giữ tiền an toàn 24-48 giờ khi giao dịch</li>
+                    <li>✔️ Đặt lịch hẹn trực tiếp tại Campus A, B, N</li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold text-sm text-ueh-gold mb-2">Định Hướng Phát Triển</h4>
+                <p class="text-blue-200">Tích hợp dữ liệu môn học LMS • Hệ thống điểm Ký gửi Kiosk Campus • Phối hợp Đoàn - Hội đổi sách lấy Điểm rèn luyện.</p>
+            </div>
+        </div>
+        <div class="text-center text-blue-400 mt-6 pt-4 border-t border-blue-900">
+            © 2026 REUNIBOOK Team. Phát triển riêng cho Cộng đồng Sinh viên UEH.
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT SIMULATION LOGIC -->
+    <script>
+        // Sample Book Data (Simulating Real DB)
+        const sampleBooks = [
+            {
+                id: 1,
+                title: "Giáo Trình Kinh Tế Vi Mô",
+                code: "ECO101",
+                dept: "kinhte",
+                type: "buy",
+                price: 45000,
+                originalPrice: 120000,
+                condition: 85,
+                conditionDetail: "Mới 85%, highlight vừa phải ở chương 2, không mất trang",
+                seller: "Lê Văn B (ST.UEH)",
+                sellerScore: 4.9,
+                badge: "UEH Verified",
+                img: "https://via.placeholder.com/200x260/003366/FFFFFF?text=Vi+Mo+UEH"
+            },
+            {
+                id: 2,
+                title: "Tài Chính Doanh Nghiệp (Bản Đẹp)",
+                code: "FIN202",
+                dept: "taichinh",
+                type: "buy",
+                price: 60000,
+                originalPrice: 150000,
+                condition: 95,
+                conditionDetail: "Rất mới, chưa tô highlight, bọc kiếng cẩn thận",
+                seller: "Trần Thị C (ST.UEH)",
+                sellerScore: 5.0,
+                badge: "UEH Verified",
+                img: "https://via.placeholder.com/200x260/2E7D32/FFFFFF?text=Tai+Chinh+DN"
+            },
+            {
+                id: 3,
+                title: "Thuê Ôn Thi 3 Ngày: Quản Trị Học",
+                code: "MGT101",
+                dept: "quantri",
+                type: "rent",
+                price: 15000, // Thuê / ngày
+                originalPrice: 90000,
+                condition: 90,
+                conditionDetail: "Phục vụ ôn thi gấp 1-3 ngày, đầy đủ note đáp án đề thi mẫu",
+                seller: "Phạm Minh D (ST.UEH)",
+                sellerScore: 4.8,
+                badge: "Cho Thuê Mùa Thi",
+                img: "https://via.placeholder.com/200x260/D4AF37/003366?text=Quan+Tri+Hoc"
+            }
+        ];
+
+        // Render Books to DOM
+        function renderBooks(books) {
+            const grid = document.getElementById('booksGrid');
+            grid.innerHTML = '';
+
+            if(books.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-10 text-gray-500 text-sm">Không tìm thấy sách phù hợp với bộ lọc.</div>`;
+                return;
+            }
+
+            books.forEach(book => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition flex flex-col justify-between";
+                
+                const isRent = book.type === 'rent';
+                const tagBg = isRent ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-blue-100 text-blue-800 border-blue-300';
+                const tagText = isRent ? 'Cho Thuê Siêu Nhắn Hạn' : 'Sách Bán';
+
+                card.innerHTML = `
+                    <div>
+                        <div class="relative">
+                            <img src="${book.img}" alt="${book.title}" class="w-full h-44 object-cover">
+                            <span class="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded border ${tagBg}">${tagText}</span>
+                            <span class="absolute top-2 right-2 text-[10px] bg-ueh-navy text-white font-bold px-2 py-0.5 rounded flex items-center gap-1">
+                                <i class="fa-solid fa-check-circle text-green-400"></i> ${book.badge}
+                            </span>
+                        </div>
+                        <div class="p-3">
+                            <div class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Mã HP: ${book.code}</div>
+                            <h4 class="font-bold text-sm text-gray-900 line-clamp-1">${book.title}</h4>
+                            
+                            <div class="mt-2 flex items-baseline gap-2">
+                                <span class="text-red-600 font-bold text-base">${book.price.toLocaleString('vi-VN')} VNĐ ${isRent ? '/ ngày' : ''}</span>
+                                ${!isRent ? `<span class="text-xs text-gray-400 line-through">${book.originalPrice.toLocaleString('vi-VN')} VNĐ</span>` : ''}
+                            </div>
+
+                            <div class="mt-2 bg-gray-50 p-2 rounded text-[11px] text-gray-600 space-y-1">
+                                <p><strong>Tình trạng:</strong> Độ mới ${book.condition}%</p>
+                                <p class="line-clamp-2 text-gray-500">"${book.conditionDetail}"</p>
+                            </div>
+
+                            <div class="mt-3 pt-2 border-t flex justify-between items-center text-[11px] text-gray-500">
+                                <span><i class="fa-solid fa-user-circle text-ueh-navy"></i> ${book.seller}</span>
+                                <span class="text-amber-600 font-bold">★ ${book.sellerScore}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-gray-50 border-t flex gap-2">
+                        <button onclick="openChat('${book.seller}')" class="flex-1 bg-ueh-navy hover:bg-blue-900 text-white font-bold py-1.5 rounded text-xs transition flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-comments"></i> Chat & Đặt Lịch
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Search & Filter Trigger
+        function filterBooks() {
+            const department = document.getElementById('filterDepartment').value;
+            const type = document.getElementById('filterType').value;
+            const condition = parseInt(document.getElementById('filterCondition').value);
+
+            const filtered = sampleBooks.filter(book => {
+                const matchDept = (department === 'all' || book.dept === department);
+                const matchType = (type === 'all' || book.type === type);
+                const matchCond = (book.condition >= condition);
+                return matchDept && matchType && matchCond;
+            });
+
+            renderBooks(filtered);
+        }
+
+        // Modal Controls
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // Chat Feature Simulation
+        function openChat(sellerName) {
+            document.getElementById('chatSellerName').innerText = sellerName + " (Xác minh Email ST.UEH)";
+            openModal('chatModal');
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            if (!input.value.trim()) return;
+
+            const box = document.getElementById('chatMessages');
+            const userMsg = document.createElement('div');
+            userMsg.className = "bg-ueh-navy text-white p-2 rounded-lg max-w-[80%] ml-auto text-right";
+            userMsg.innerText = input.value;
+            box.appendChild(userMsg);
+
+            input.value = '';
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function sendSchedule() {
+            const loc = document.getElementById('meetLocation').value;
+            const time = document.getElementById('meetTime').value;
+
+            if(!time) {
+                alert('Vui lòng chọn thời gian hẹn!');
+                return;
+            }
+
+            const box = document.getElementById('chatMessages');
+            const schedMsg = document.createElement('div');
+            schedMsg.className = "bg-green-100 border border-green-300 text-green-900 p-2 rounded-lg max-w-[90%] mx-auto text-center font-semibold";
+            schedMsg.innerHTML = `📅 <strong>Đã tự động gửi lời mời hẹn gặp:</strong><br>Địa điểm: ${loc}<br>Thời gian: ${time}`;
+            box.appendChild(schedMsg);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // LMS Sync Feature Simulation
+        function syncLMS() {
+            alert("Đã kết nối thành công với UEH Portal! Nền tảng đã tự động lọc danh sách giáo trình phù hợp với 5 môn học trong học kỳ này của bạn.");
+        }
+
+        // Form Post Book Handler
+        function handlePostBook(e) {
+            e.preventDefault();
+            const title = document.getElementById('postTitle').value;
+            const code = document.getElementById('postCode').value;
+            const dept = document.getElementById('postDept').value;
+            const type = document.getElementById('postType').value;
+            const price = parseInt(document.getElementById('postPrice').value);
+            const condition = document.getElementById('postCondition').value;
+
+            const newBook = {
+                id: Date.now(),
+                title: title,
+                code: code.toUpperCase(),
+                dept: dept,
+                type: type,
+                price: price,
+                originalPrice: price * 2,
+                condition: 90,
+                conditionDetail: condition,
+                seller: "Bạn (ST.UEH chính chủ)",
+                sellerScore: 5.0,
+                badge: "Tin mới đăng",
+                img: "https://via.placeholder.com/200x260/003366/FFFFFF?text=Anh+Thuc+Te"
+            };
+
+            sampleBooks.unshift(newBook);
+            renderBooks(sampleBooks);
+            closeModal('postModal');
+            alert('Đăng bài thành công! Bài viết của bạn đã được đưa lên hệ thống.');
+        }
+
+        // Live Search Input Event
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase();
+            const filtered = sampleBooks.filter(b => 
+                b.title.toLowerCase().includes(query) || 
+                b.code.toLowerCase().includes(query)
+            );
+            renderBooks(filtered);
+        });
+
+        // Initialize App
+        renderBooks(sampleBooks);
+    </script>
+</body>
+</html>
